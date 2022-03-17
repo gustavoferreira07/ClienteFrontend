@@ -2,18 +2,17 @@ import React, {useState,useEffect} from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
-import logoCadastro from './assets/register.png';
 import {Modal,ModalBody,ModalFooter,ModalHeader} from 'reactstrap';
 
 
 function App() {
   const baseurl='https://localhost:44379/api/cliente';
-  const [data, setData] = useState([]);
+  const [dataCliente, setData] = useState([]);
   const [modalIncluir, setModalIncluir]= useState(false);
   const [modalEditar, setModalEditar] = useState(false);  
+  const [modalExcluir, setModalExcluir] = useState(false);  
   const [clienteSelecionado, setClienteSelecionado] = useState(
     {
-      id:'',
       nome:'',
       sobrenome:'',
       nacionalidade:'',
@@ -33,29 +32,20 @@ function App() {
 
   const selecionarCliente = (cliente, opcao)=>{
     setClienteSelecionado(cliente);
-      (opcao==='Editar') &&
-        abrirFecharModalEditar();
+     if (opcao==='Editar') {
+      abrirFecharModalEditar();
+     }
+     else if(opcao==='Excluir'){
+       abrirFecharModalEXcluir();
+     }
+       
+
       
   }
 
   const clientePut = async()=>{
-
+    console.log(clienteSelecionado);
     await axios.put(baseurl+'/Editar',clienteSelecionado).then(response=>{
-      var resposta= response.data;
-      var dadosAuxiliar = data;
-      
-      // data.map(cliente=>{
-      //   (cliente.id=== clienteSelecionado.id) &&
-      //     console.log('opa');
-      //     cliente.nome=resposta.nome,
-      //     cliente.logradouro=resposta.logradouro,
-      //     cliente.nacionalidade=resposta.nacionalidade,
-      //     cliente.cep=resposta.cep,
-      //     cliente.uf=resposta.uf,
-      //     cliente.email=resposta.email,
-      //     cliente.telefone=resposta.telefone
-      //   }
-      // );
       alert('Registro alterado com sucesso!');
       abrirFecharModalEditar();
       window.location.reload(false);
@@ -72,6 +62,17 @@ function App() {
     })
   }
 
+  const clienteDelete = async()=>{
+    await axios.delete(baseurl+'/Deletar', {data:clienteSelecionado}).then(response =>{
+      setData(dataCliente.filter(cliente => cliente.id !== response.data.id));
+      alert('Registro excluido com sucesso!');
+      abrirFecharModalEXcluir();
+      window.location.reload(false);
+    }).catch(error =>{
+      console.log(error);
+    })
+  }
+
  const getCep = async()=>{
    console.log(clienteSelecionado?.cep.length);
     if(clienteSelecionado.cep.length < 9) {
@@ -83,6 +84,7 @@ function App() {
         logradouro: response.data.logradouro,
         localidade: response.data.localidade
       }) 
+      handleChange();
       
       console.log(response.data);
     }).catch(error=>{
@@ -92,8 +94,11 @@ function App() {
   }
 
   const clientePost = async()=>{
+    CompleteClienteSelecionado(clienteSelecionado, cepSelecionado);
+    // clienteSelecionado.id = parseInt(clienteSelecionado.id);
     await axios.post(baseurl+'/Adicionar', clienteSelecionado).then(response =>{
-      setData(data.concat(response.data));
+      setData(dataCliente.concat(response.data));
+      window.location.reload(false);
       abrirFecharModalIncluir();
     }).catch(error=>{
       console.log(error);
@@ -101,7 +106,11 @@ function App() {
   }
   
 
-
+ function CompleteClienteSelecionado(clienteSelecionado, cepSelecionado){
+   clienteSelecionado.uf = cepSelecionado.uf;
+   clienteSelecionado.localidade = cepSelecionado.localidade;
+   clienteSelecionado.logradouro = cepSelecionado.logradouro;
+ }
 
   const abrirFecharModalIncluir=()=>{
     setModalIncluir(!modalIncluir);
@@ -109,6 +118,10 @@ function App() {
 
   const abrirFecharModalEditar=()=>{
     setModalEditar(!modalEditar);
+  }
+
+  const abrirFecharModalEXcluir=()=>{
+    setModalExcluir(!modalExcluir);
   }
 
 
@@ -150,7 +163,7 @@ function App() {
           </tr>
         </thead>
         <tbody>
-            {data.map(cliente=>(
+            {dataCliente.map(cliente=>(
               <tr key={cliente.id}>
                 <td>{cliente.nome}</td>
                 <td>{cliente.nacionalidade}</td>
@@ -180,7 +193,7 @@ function App() {
               <input type="text" name='nome'  onChange={handleChange} className='form-control'/>
               <label>Sobrenome:</label>
               <br/>
-              <input type="text" name='sobrenome' onChange={handleChange} className='form-control'/>
+              <input type="text" name='sobrenome' required onChange={handleChange} className='form-control'/>
               <label>Nacionalidade:</label>
               <br/>
               <input type="text" name='nacionalidade' onChange={handleChange}  className='form-control'/>
@@ -252,6 +265,17 @@ function App() {
                <button className='btn btn-primary'onClick={()=> clientePut()} >Editar</button>{"  "}
                <button className='btn btn-danger' onClick={()=>abrirFecharModalEditar()}>Cancelar</button>
              </ModalFooter>
+        </Modal>
+
+
+        <Modal isOpen={modalExcluir}>
+              <ModalBody>
+                Confirma a exclusão do(a) cliente: {clienteSelecionado && clienteSelecionado.nome} ?
+              </ModalBody>
+              <ModalFooter>
+                  <button className='btn btn-danger' onClick={()=> clienteDelete()}>Sim</button>
+                  <button className='btn btn-secondary' onClick={()=> abrirFecharModalEXcluir()}>Não</button>
+              </ModalFooter>
         </Modal>
     </div>
   );

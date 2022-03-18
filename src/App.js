@@ -3,6 +3,7 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import {Modal,ModalBody,ModalFooter,ModalHeader} from 'reactstrap';
+import validator from 'validator';
 
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [modalIncluir, setModalIncluir]= useState(false);
   const [modalEditar, setModalEditar] = useState(false);  
   const [modalExcluir, setModalExcluir] = useState(false);  
+  const [emailError, setEmailError] = useState('')
   const [clienteSelecionado, setClienteSelecionado] = useState(
     {
       nome:'',
@@ -95,6 +97,8 @@ function App() {
 
   const clientePost = async()=>{
     CompleteClienteSelecionado(clienteSelecionado, cepSelecionado);
+    var validade = ValidateSubmit();
+    if(validade){
     // clienteSelecionado.id = parseInt(clienteSelecionado.id);
     await axios.post(baseurl+'/Adicionar', clienteSelecionado).then(response =>{
       setData(dataCliente.concat(response.data));
@@ -103,6 +107,10 @@ function App() {
     }).catch(error=>{
       console.log(error);
     })
+  }
+    else{
+    alert('Preencha todos os campos');
+    }
   }
   
 
@@ -114,6 +122,8 @@ function App() {
 
   const abrirFecharModalIncluir=()=>{
     setModalIncluir(!modalIncluir);
+    setEmailError('');
+    setCepSelecionado('');
   }
 
   const abrirFecharModalEditar=()=>{
@@ -135,10 +145,28 @@ function App() {
     }
 
   useEffect(()=>{
-
     clienteGet();
-    
   },[])
+
+  function emailValidation(){
+      if (validator.isEmail(clienteSelecionado.email)) {
+        setEmailError('')
+        document.getElementById('email').style.borderColor="#ced4da";
+      } else {
+        setEmailError('E-mail inválido!')
+        document.getElementById('email').style.borderColor="red";
+      } 
+  }
+
+function ValidateSubmit(){
+  console.log('CLIENTE: ', clienteSelecionado);
+  for (const [key, value] of Object.entries(clienteSelecionado)) {
+    if(value==='' || emailError!==''){
+      return false;
+    } 
+  } 
+  return true;
+}
 
   return (
     <div className="App">
@@ -212,7 +240,9 @@ function App() {
               <input type="text" name='logradouro' readOnly value={cepSelecionado && cepSelecionado?.logradouro}  onChange={handleChange} className='form-control'/>
               <label>Email:</label>
               <br/>
-              <input type="text" name='email' onChange={handleChange} className='form-control'/>
+              <input type="text" id="email" name='email' onChange={handleChange} onBlur={()=>emailValidation()} className='form-control'/>
+              <span className="text-danger">{emailError}</span>
+              {emailError && <br/>}
               <label>Telefone:</label>
               <br/>
               <input type="text" name ='telefone' onChange={handleChange} className='form-control'/>             
